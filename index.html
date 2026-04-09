@@ -103,6 +103,55 @@ nav{position:sticky;top:0;background:rgba(10,10,10,.88);backdrop-filter:blur(22p
 .pb{padding-bottom:88px}
 .toast{position:fixed;bottom:92px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--pink);color:#fff;padding:11px 22px;border-radius:100px;font-size:.87rem;font-weight:500;opacity:0;transition:all .38s;z-index:2000;white-space:nowrap;box-shadow:0 8px 28px rgba(255,45,120,.38);pointer-events:none}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* === ДОБАВЛЕНО: Лайки, Избранное, Карусель, Комментарии === */
+.like-btn, .fav-btn {
+  position: absolute;
+  top: 12px;
+  background: rgba(0,0,0,0.65);
+  border: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 1.2rem;
+  cursor: pointer;
+  z-index: 15;
+  transition: all 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.like-btn { right: 12px; }
+.fav-btn { right: 56px; }
+.like-btn:hover, .fav-btn:hover { background: rgba(255,45,120,0.9); transform: scale(1.1); }
+.like-btn.liked { color: #FF2D78; animation: likePop 0.4s; }
+.fav-btn.faved { color: #FF2D78; }
+@keyframes likePop { 0%{transform:scale(0.6)} 50%{transform:scale(1.3)} 100%{transform:scale(1)} }
+
+.carousel { padding: 20px 40px 40px; position: relative; }
+.carousel-wrapper { overflow: hidden; padding: 10px 0; }
+.carousel-track { display: flex; gap: 22px; transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1); }
+.carousel-btn {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 46px; height: 46px; background: rgba(10,10,10,0.9);
+  border: 1px solid rgba(255,45,120,0.4); color: var(--pink);
+  border-radius: 50%; font-size: 1.5rem; cursor: pointer; z-index: 20;
+}
+.carousel-btn:hover { background: var(--pink); color: white; border-color: var(--pink); }
+.carousel-btn.prev { left: 20px; }
+.carousel-btn.next { right: 20px; }
+
+.comments-section { margin-top: 30px; padding-top: 24px; border-top: 1px solid rgba(255,45,120,0.15); }
+.comments-title { font-family: 'Playfair Display', serif; font-size: 1.3rem; color: var(--pink-soft); margin-bottom: 16px; }
+#comments-list { max-height: 320px; overflow-y: auto; margin-bottom: 16px; }
+.comment { background: rgba(255,255,255,0.03); border-radius: 14px; padding: 14px 18px; margin-bottom: 12px; font-size: 0.9rem; line-height: 1.5; }
+.comment-author { color: var(--pink); font-weight: 600; font-size: 0.83rem; margin-bottom: 5px; }
+.comment-time { font-size: 0.73rem; color: var(--dim); margin-top: 6px; }
+.comment-form { display: flex; gap: 10px; }
+.comment-form input { flex: 1; padding: 13px 17px; background: rgba(255,255,255,0.045); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: white; }
+.comment-form button { padding: 0 26px; background: var(--pink); border: none; border-radius: 12px; color: white; font-weight: 600; cursor: pointer; }
+
 @media(max-width:600px){nav,.hero,.shead,.grid,.phead{padding-left:16px;padding-right:16px}.grid{grid-template-columns:1fr}.phead{flex-direction:column;text-align:center}.pstats{justify-content:center}.auth-card{padding:34px 22px}}
 </style>
 </head>
@@ -148,6 +197,16 @@ nav{position:sticky;top:0;background:rgba(10,10,10,.88);backdrop-filter:blur(22p
       <h1>Фанатам делаю сайт , а так он не  <em>вдохновляет</em></h1>
       <p>тут чисто это дура , хотя нет </p>
     </div>
+
+    <!-- Карусель рекомендаций -->
+    <div class="carousel">
+      <button class="carousel-btn prev" onclick="moveCarousel(-1)">‹</button>
+      <div class="carousel-wrapper">
+        <div class="carousel-track" id="carousel-track"></div>
+      </div>
+      <button class="carousel-btn next" onclick="moveCarousel(1)">›</button>
+    </div>
+
     <div class="shead"><h2 class="stitle">Все видео</h2><div class="sline"></div></div>
     <div class="grid" id="vgrid"></div>
   </div>
@@ -184,6 +243,16 @@ nav{position:sticky;top:0;background:rgba(10,10,10,.88);backdrop-filter:blur(22p
       </div>
       <div class="mtags" id="mtags"></div>
       <div class="mdesc" id="mdesc"></div>
+
+      <!-- Комментарии -->
+      <div class="comments-section">
+        <div class="comments-title">Комментарии <span id="comment-count">(0)</span></div>
+        <div id="comments-list"></div>
+        <div class="comment-form">
+          <input id="comment-input" type="text" placeholder="Напишите комментарий... 🌸">
+          <button onclick="addComment()">Отправить</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -192,25 +261,10 @@ nav{position:sticky;top:0;background:rgba(10,10,10,.88);backdrop-filter:blur(22p
 <script>
 /* ╔══════════════════════════════════════════════════════╗
    ║  🎬 ВИДЕО — редактируй только здесь                 ║
-   ║  Добавляй ссылки Streamable, YouTube, Vimeo, mp4    ║
    ╚══════════════════════════════════════════════════════╝ */
 const VIDEOS = [
-  {
-    id: 1,
-    title: "Дура на связи",
-    category: "Видео 1",
-    desc: "Дура на связи 📞🌸",
-    tags: ["Дура на связи"],
-    url: "https://streamable.com/lyj7ip"
-  },
-  {
-    id: 2,
-    title: "Дура на связи",
-    category: "Видео 2",
-    desc: "Дура на связи 📞🌸",
-    tags: ["Дура на связи"],
-    url: "https://streamable.com/rx0m5p"
-  }
+  { id: 1, title: "Дура на связи", category: "Видео 1", desc: "Дура на связи 📞🌸", tags: ["Дура на связи"], url: "https://streamable.com/lyj7ip" },
+  { id: 2, title: "Дура на связи", category: "Видео 2", desc: "Дура на связи 📞🌸", tags: ["Дура на связи"], url: "https://streamable.com/rx0m5p" }
 ];
 
 /* ── Определяем тип ── */
@@ -225,38 +279,38 @@ function parseUrl(url) {
   return { type: 'direct', url };
 }
 
-/* ── Превью в карточке ── */
 function makeThumb(v) {
   const p = parseUrl(v.url);
-  if (p.type === 'youtube')
-    return `<img src="https://img.youtube.com/vi/${p.id}/hqdefault.jpg" alt="${v.title}" loading="lazy">`;
-  if (p.type === 'streamable')
-    return `<iframe class="preview" src="https://streamable.com/e/${p.id}?autoplay=0&muted=1&controls=0&loop=1" allow="autoplay" allowfullscreen></iframe>`;
-  if (p.type === 'direct')
-    return `<video src="${p.url}#t=2" preload="metadata" muted playsinline></video>`;
+  if (p.type === 'youtube') return `<img src="https://img.youtube.com/vi/${p.id}/hqdefault.jpg" alt="${v.title}" loading="lazy">`;
+  if (p.type === 'streamable') return `<iframe class="preview" src="https://streamable.com/e/${p.id}?autoplay=0&muted=1&controls=0&loop=1" allow="autoplay" allowfullscreen></iframe>`;
+  if (p.type === 'direct') return `<video src="${p.url}#t=2" preload="metadata" muted playsinline></video>`;
   return `<div class="tfb">🎬</div>`;
 }
 
-/* ── Плеер в модальном окне ── */
 function makePlayer(v) {
   const p = parseUrl(v.url);
-  if (p.type === 'youtube')
-    return `<iframe src="https://www.youtube.com/embed/${p.id}?autoplay=1&rel=0" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
-  if (p.type === 'vimeo')
-    return `<iframe src="https://player.vimeo.com/video/${p.id}?autoplay=1" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
-  if (p.type === 'streamable')
-    return `<iframe src="https://streamable.com/e/${p.id}?autoplay=1" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
-  if (p.type === 'direct')
-    return `<video src="${p.url}" controls autoplay style="width:100%;height:100%;background:#000"></video>`;
+  if (p.type === 'youtube') return `<iframe src="https://www.youtube.com/embed/${p.id}?autoplay=1&rel=0" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+  if (p.type === 'vimeo') return `<iframe src="https://player.vimeo.com/video/${p.id}?autoplay=1" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+  if (p.type === 'streamable') return `<iframe src="https://streamable.com/e/${p.id}?autoplay=1" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+  if (p.type === 'direct') return `<video src="${p.url}" controls autoplay style="width:100%;height:100%;background:#000"></video>`;
   return `<div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--dim)">Формат не поддерживается</div>`;
 }
 
 /* ════ STATE ════ */
 let user = null, hist = [];
-const sv = localStorage.getItem('vv_user');
-if (sv) { user = JSON.parse(sv); hist = JSON.parse(localStorage.getItem('vv_h_' + user.email) || '[]'); boot(); }
+let likes = JSON.parse(localStorage.getItem('vv_likes') || '[]');
+let favorites = JSON.parse(localStorage.getItem('vv_favorites') || '[]');
+let allComments = JSON.parse(localStorage.getItem('vv_comments') || '{}');
+let currentVideoId = null;
 
-function switchTab(t) {
+const sv = localStorage.getItem('vv_user');
+if (sv) { 
+  user = JSON.parse(sv); 
+  hist = JSON.parse(localStorage.getItem('vv_h_' + user.email) || '[]'); 
+  boot(); 
+}
+
+function switchTab(t) { /* ... твой оригинальный код ... */ 
   document.getElementById('t-in').classList.toggle('on', t === 'in');
   document.getElementById('t-up').classList.toggle('on', t === 'up');
   document.getElementById('f-in').style.display = t === 'in' ? 'block' : 'none';
@@ -264,7 +318,7 @@ function switchTab(t) {
   document.getElementById('aerr').style.display = 'none';
 }
 function serr(m) { const e = document.getElementById('aerr'); e.textContent = m; e.style.display = 'block'; }
-function register() {
+function register() { /* твой оригинальный код */ 
   const n = document.getElementById('ru-n').value.trim();
   const e = document.getElementById('ru-e').value.trim();
   const p = document.getElementById('ru-p').value;
@@ -277,7 +331,7 @@ function register() {
   user = { name: n, email: e }; localStorage.setItem('vv_user', JSON.stringify(user));
   hist = []; boot(); toast('Добро пожаловать, ' + n + '! 🌸');
 }
-function login() {
+function login() { /* твой оригинальный код */ 
   const e = document.getElementById('li-e').value.trim();
   const p = document.getElementById('li-p').value;
   if (!e || !p) return serr('Заполните все поля');
@@ -292,8 +346,8 @@ function logout() {
   localStorage.removeItem('vv_user'); user = null;
   document.getElementById('auth-screen').classList.add('active');
   document.getElementById('app-screen').classList.remove('active');
-  document.getElementById('li-e').value = ''; document.getElementById('li-p').value = '';
 }
+
 function boot() {
   document.getElementById('auth-screen').classList.remove('active');
   document.getElementById('app-screen').classList.add('active');
@@ -303,51 +357,174 @@ function boot() {
   document.getElementById('pa-nm').textContent = user.name;
   document.getElementById('pa-em').textContent = user.email;
   document.getElementById('st-t').textContent = VIDEOS.length;
-  renderGrid(); updateStats();
+  renderGrid();
+  updateStats();
+  initNewFeatures();
 }
+
 function showPage(p) {
   document.getElementById('p-home').style.display = p === 'home' ? 'block' : 'none';
   document.getElementById('p-prof').style.display = p === 'prof' ? 'block' : 'none';
   document.getElementById('bn-h').classList.toggle('on', p === 'home');
   document.getElementById('bn-p').classList.toggle('on', p === 'prof');
   if (p === 'prof') renderHist();
+  if (p === 'home') setTimeout(() => { renderCarousel(); updateLikeUI(); }, 150);
 }
+
 function card(v, d) {
   return `<div class="vcard" onclick="openVideo(${v.id})" style="animation-delay:${d}s">
-  <div class="vthumb">${makeThumb(v)}<div class="povl"><div class="pring"><div class="tri"></div></div></div></div>
-  <div class="vinfo"><div class="vtag">${v.category}</div><div class="vtitle">${v.title}</div><div class="vdesc">${v.desc}</div></div>
+    <div class="vthumb">
+      <button class="fav-btn" onclick="toggleFavorite(${v.id}, event)">★</button>
+      <button class="like-btn" onclick="toggleLike(${v.id}, event)">♡</button>
+      ${makeThumb(v)}
+      <div class="povl"><div class="pring"><div class="tri"></div></div></div>
+    </div>
+    <div class="vinfo"><div class="vtag">${v.category}</div><div class="vtitle">${v.title}</div><div class="vdesc">${v.desc}</div></div>
   </div>`;
 }
+
 function renderGrid() {
   const g = document.getElementById('vgrid');
-  g.innerHTML = VIDEOS.length ? VIDEOS.map((v, i) => card(v, i * .1)).join('')
-    : `<div class="empty"><div class="big">🎬</div><p>Видео пока нет.</p></div>`;
+  g.innerHTML = VIDEOS.length ? VIDEOS.map((v, i) => card(v, i * 0.1)).join('') : `<div class="empty"><div class="big">🎬</div><p>Видео пока нет.</p></div>`;
 }
+
 function renderHist() {
   const g = document.getElementById('hgrid');
   const h = VIDEOS.filter(v => hist.includes(v.id));
-  g.innerHTML = h.length ? h.map((v, i) => card(v, i * .1)).join('')
-    : `<div class="empty"><div class="big">📺</div><p>Вы ещё ничего не смотрели.</p></div>`;
+  g.innerHTML = h.length ? h.map((v, i) => card(v, i * 0.1)).join('') : `<div class="empty"><div class="big">📺</div><p>Вы ещё ничего не смотрели.</p></div>`;
 }
+
+/* ====================== НОВЫЕ ФУНКЦИИ ====================== */
+function toggleLike(id, e) {
+  e.stopImmediatePropagation();
+  if (likes.includes(id)) likes = likes.filter(x => x !== id);
+  else likes.push(id);
+  localStorage.setItem('vv_likes', JSON.stringify(likes));
+  updateLikeUI();
+}
+
+function toggleFavorite(id, e) {
+  e.stopImmediatePropagation();
+  if (favorites.includes(id)) favorites = favorites.filter(x => x !== id);
+  else favorites.push(id);
+  localStorage.setItem('vv_favorites', JSON.stringify(favorites));
+  updateLikeUI();
+  toast(favorites.includes(id) ? 'Добавлено в избранное ❤️' : 'Убрано из избранного');
+}
+
+function updateLikeUI() {
+  document.querySelectorAll('.vcard').forEach(card => {
+    const match = card.getAttribute('onclick').match(/\d+/);
+    if (!match) return;
+    const id = parseInt(match[0]);
+    const likeBtn = card.querySelector('.like-btn');
+    const favBtn = card.querySelector('.fav-btn');
+    if (likeBtn) likeBtn.classList.toggle('liked', likes.includes(id));
+    if (favBtn) favBtn.classList.toggle('faved', favorites.includes(id));
+  });
+}
+
+function renderCarousel() {
+  const track = document.getElementById('carousel-track');
+  if (!track) return;
+  const shuffled = [...VIDEOS].sort(() => Math.random() - 0.5).slice(0, 8);
+  track.innerHTML = shuffled.map(v => `<div style="min-width:290px;flex-shrink:0">${card(v,0)}</div>`).join('');
+  updateLikeUI();
+}
+
+let carouselPos = 0;
+function moveCarousel(dir) {
+  const track = document.getElementById('carousel-track');
+  if (!track) return;
+  const step = 312;
+  carouselPos = Math.max(0, Math.min(carouselPos + dir, track.children.length - 3));
+  track.style.transform = `translateX(-${carouselPos * step}px)`;
+}
+
+function renderComments(videoId) {
+  const list = document.getElementById('comments-list');
+  const count = document.getElementById('comment-count');
+  if (!list) return;
+  list.innerHTML = '';
+  const comments = allComments[videoId] || [];
+  count.textContent = `(${comments.length})`;
+  comments.forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'comment';
+    div.innerHTML = `<div class="comment-author">${c.name}</div><div>${c.text}</div><div class="comment-time">${c.time}</div>`;
+    list.appendChild(div);
+  });
+}
+
+function addComment() {
+  const input = document.getElementById('comment-input');
+  const text = input.value.trim();
+  if (!text || !currentVideoId) return;
+  if (!allComments[currentVideoId]) allComments[currentVideoId] = [];
+  allComments[currentVideoId].unshift({
+    name: user.name,
+    text: text,
+    time: new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'})
+  });
+  localStorage.setItem('vv_comments', JSON.stringify(allComments));
+  renderComments(currentVideoId);
+  input.value = '';
+  toast('Комментарий добавлен 🌸');
+}
+
+/* Открытие видео (исправлено) */
 function openVideo(id) {
-  const v = VIDEOS.find(x => x.id === id); if (!v) return;
+  const v = VIDEOS.find(x => x.id === id);
+  if (!v) return;
+
   document.getElementById('mvid').innerHTML = makePlayer(v);
   document.getElementById('mtitle').textContent = v.title;
   document.getElementById('mtags').innerHTML = v.tags.map(t => `<span class="mtag">${t}</span>`).join('');
   document.getElementById('mdesc').textContent = v.desc;
+
   document.getElementById('modal').classList.add('open');
   document.body.style.overflow = 'hidden';
-  if (!hist.includes(id)) { hist.unshift(id); localStorage.setItem('vv_h_' + user.email, JSON.stringify(hist)); updateStats(); }
+
+  if (!hist.includes(id)) {
+    hist.unshift(id);
+    localStorage.setItem('vv_h_' + user.email, JSON.stringify(hist));
+    updateStats();
+  }
+
+  currentVideoId = id;
+  setTimeout(() => renderComments(id), 300);
 }
+
 function closeModal() {
   document.getElementById('mvid').innerHTML = '';
   document.getElementById('modal').classList.remove('open');
   document.body.style.overflow = '';
+  document.getElementById('comment-input').value = '';
 }
-function updateStats() { document.getElementById('st-w').textContent = hist.length; }
-function toast(m) { const e = document.getElementById('toast'); e.textContent = m; e.classList.add('show'); setTimeout(() => e.classList.remove('show'), 3200); }
-document.getElementById('modal').addEventListener('click', e => { if (e.target === document.getElementById('modal')) closeModal(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+function updateStats() {
+  document.getElementById('st-w').textContent = hist.length;
+}
+
+function toast(m) {
+  const e = document.getElementById('toast');
+  e.textContent = m;
+  e.classList.add('show');
+  setTimeout(() => e.classList.remove('show'), 3200);
+}
+
+function initNewFeatures() {
+  renderCarousel();
+  updateLikeUI();
+}
+
+/* События */
+document.getElementById('modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal')) closeModal();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+});
 </script>
 </body>
 </html>
