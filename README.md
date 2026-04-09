@@ -1,0 +1,2 @@
+# duraa.github.io
+дура 
